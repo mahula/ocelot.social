@@ -19,7 +19,7 @@ avec les données d’accès suivantes :
 | `moderator@example.org` | 1234         | modérateur            |
 | `admin@example.org`     | 1234         | administrateur        |
 
-## Hébergement sur un serveur
+## Hébergement sur un serveTESTur
 
 ### L’héberger soi-même
 
