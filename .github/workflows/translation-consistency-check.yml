@@ -52,14 +52,13 @@ jobs:
 
             const pr = prs[0]
 
-            if (!pr.number || !pr.title || !pr.user?.login || !pr.base?.ref || !pr.base?.sha || !pr.head?.sha) {
-              core.setFailed('Pull request data is incomplete. Missing required fields: number, title, user.login, base.ref, base.sha, or head.sha.')
+            if (!pr.number || !pr.title) {
+              core.setFailed('Pull request data is incomplete. Missing required fields: number or title.')
               return
             }
 
             const prNumber = pr.number
             const prTitle = pr.title
-            const prAuthor = pr.user.login
 
             const changedLocales = JSON.parse('${{ steps.filter.outputs.changes }}')
             const changes = {
@@ -81,11 +80,9 @@ jobs:
               return
             }
 
-            const allChangedFiles = prFiles
-
             for (const locale of changedLocales) {
               const localePrefix = `docs/${locale}/`
-              const localeFiles = allChangedFiles.filter(f =>
+              const localeFiles = prFiles.filter(f =>
                 f.filename.startsWith(localePrefix) && f.filename.endsWith('.md')
               )
 
@@ -147,7 +144,7 @@ jobs:
             const commitUrl = `${baseUrl}/commit/${context.sha}`
             const prTemplateUrl = `https://github.com/Ocelot-Social-Community/Ocelot-Social/blob/master/.github/PULL_REQUEST_TEMPLATE.md`
 
-            const issueBody = `## Translation Update Required
+            const buildIssueBody = (issueNum) => `## Translation Update Required
 
             Pull Request **[#${prNumber} ${prTitle}](${prUrl})** has been merged with documentation changes.
 
@@ -161,16 +158,24 @@ jobs:
               - [ ] If not, close this issue with an appropriate comment
               - [ ] Else, update the translations
                 - [ ] Use the [Pull request template](${prTemplateUrl})
-                  - [ ] Set this very issue to be fixed by the pull request`
+                  - [ ] When all translation updates are completed, set this very issue to be fixed by the pull request (" - fixes #${issueNum}")`
 
             try {
               const { data: newIssue } = await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title: issueTitle,
-                body: issueBody,
+                body: buildIssueBody('<issue-number>'),
                 labels: ['translation', 'documentation']
               })
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: newIssue.number,
+                body: buildIssueBody(newIssue.number)
+              })
+
               console.log(`Created issue #${newIssue.number}`)
             } catch (error) {
               core.setFailed(`Failed to create issue: ${error.message}`)
